@@ -409,9 +409,11 @@ class SuperSelectableTextState extends State<SuperSelectableText> implements Tex
   Widget build(BuildContext context) {
     if (_renderParagraph == null) {
       WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-        setState(() {
-          // Force another frame so that we can use the renderParagraph.
-        });
+        if (mounted) {
+          setState(() {
+            // Force another frame so that we can use the renderParagraph.
+          });
+        }
       });
     }
 
@@ -828,21 +830,27 @@ class _DebugSelectableTextDecoratorState extends State<DebugSelectableTextDecora
     if (_selectableTextState == null) {
       // Schedule another frame so we can compute the debug paint.
       WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       });
       return const SizedBox();
     }
     if (_renderParagraph == null) {
       // Schedule another frame so we can compute the debug paint.
       WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       });
       return const SizedBox();
     }
     if (_renderParagraph!.hasSize && (kDebugMode && _renderParagraph!.debugNeedsLayout)) {
       // Schedule another frame so we can compute the debug paint.
       WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       });
       return const SizedBox();
     }

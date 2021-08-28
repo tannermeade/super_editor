@@ -79,9 +79,9 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
   // Tracks user drag gestures for selection purposes.
   SelectionType _selectionType = SelectionType.position;
   Offset? _dragStartInViewport;
-  Offset? _dragStartInDoc;
+  DocumentPosition? _dragStartInDoc;
   Offset? _dragEndInViewport;
-  Offset? _dragEndInDoc;
+  DocumentPosition? _dragEndInDoc;
   Rect? _dragRectInViewport;
 
   bool _scrollUpOnTick = false;
@@ -184,16 +184,16 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
     if (beyondTopExtent > 0) {
       final newScrollPosition =
           (_scrollController.offset - beyondTopExtent).clamp(0.0, _scrollController.position.maxScrollExtent);
-
-      _scrollController.animateTo(
-        newScrollPosition,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-      );
+      print("_scrollController.animateTo: mark 1");
+      // _scrollController.animateTo(
+      //   newScrollPosition,
+      //   duration: const Duration(milliseconds: 100),
+      //   curve: Curves.easeOut,
+      // );
     } else if (beyondBottomExtent > 0) {
       final newScrollPosition =
           (beyondBottomExtent + _scrollController.offset).clamp(0.0, _scrollController.position.maxScrollExtent);
-
+      print("_scrollController.animateTo: mark 2");
       _scrollController.animateTo(
         newScrollPosition,
         duration: const Duration(milliseconds: 100),
@@ -224,6 +224,7 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
 
   void _onTapDown(TapDownDetails details) {
     _log.log('_onTapDown', 'EditableDocument: onTapDown()');
+    print("_onTapDown");
     _clearSelection();
     _selectionType = SelectionType.position;
 
@@ -242,6 +243,7 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
   }
 
   void _onDoubleTapDown(TapDownDetails details) {
+    print("_onDoubleTapDown");
     _selectionType = SelectionType.word;
 
     _log.log('_onDoubleTapDown', 'EditableDocument: onDoubleTap()');
@@ -267,10 +269,12 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
   }
 
   void _onDoubleTap() {
+    print("_onDoubleTap");
     _selectionType = SelectionType.position;
   }
 
   void _onTripleTapDown(TapDownDetails details) {
+    print("_onTripleTapDown");
     _selectionType = SelectionType.paragraph;
 
     _log.log('_onTripleTapDown', 'EditableDocument: onTripleTapDown()');
@@ -296,14 +300,16 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
   }
 
   void _onTripleTap() {
+    print("_onTripleTap");
     _selectionType = SelectionType.position;
   }
 
   void _onPanStart(DragStartDetails details) {
+    print("_onPanStart called");
     _log.log('_onPanStart', '_onPanStart()');
     _dragStartInViewport = details.localPosition;
-    _dragStartInDoc = _getDocOffset(_dragStartInViewport!);
-
+    final docOffset = _getDocOffset(_dragStartInViewport!);
+    _dragStartInDoc = _layout.getDocumentPositionAtOffset(docOffset);
     _clearSelection();
     _dragRectInViewport = Rect.fromLTWH(_dragStartInViewport!.dx, _dragStartInViewport!.dy, 1, 1);
 
@@ -312,9 +318,13 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
 
   void _onPanUpdate(DragUpdateDetails details) {
     _log.log('_onPanUpdate', '_onPanUpdate()');
+    print("_onPanUpdate called");
     setState(() {
       _dragEndInViewport = details.localPosition;
-      _dragEndInDoc = _getDocOffset(_dragEndInViewport!);
+
+      final docOffset = _getDocOffset(_dragEndInViewport!);
+      _dragEndInDoc = _layout.getDocumentPositionAtOffset(docOffset);
+
       _dragRectInViewport = Rect.fromPoints(_dragStartInViewport!, _dragEndInViewport!);
       _log.log('_onPanUpdate', ' - drag rect: $_dragRectInViewport');
       _updateCursorStyle(details.localPosition);
@@ -388,14 +398,28 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
       return;
     }
 
-    _dragEndInDoc = _getDocOffset(_dragEndInViewport!);
+    final docOffset = _getDocOffset(_dragEndInViewport!);
+    _dragEndInDoc = _layout.getDocumentPositionAtOffset(docOffset);
+    if (_dragEndInDoc != null && _dragStartInDoc != null) {
+      _selectRegionByDocPosition(
+        documentLayout: _layout,
+        base: _dragStartInDoc!,
+        extent: _dragEndInDoc!,
+        selectionType: _selectionType,
+      );
+    }
+  }
 
-    _selectRegion(
-      documentLayout: _layout,
-      baseOffset: _dragStartInDoc!,
-      extentOffset: _dragEndInDoc!,
-      selectionType: _selectionType,
-    );
+  void _selectRegionByDocPosition({
+    required DocumentLayout documentLayout,
+    required DocumentPosition base,
+    required DocumentPosition extent,
+    required SelectionType selectionType,
+  }) {
+    widget.editContext.composer.selection = (DocumentSelection(
+      base: base,
+      extent: extent,
+    ));
   }
 
   void _selectRegion({
@@ -701,6 +725,22 @@ class _DocumentInteractorState extends State<DocumentInteractor> with SingleTick
   Widget _buildDocumentContainer({
     required Widget document,
   }) {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        document,
+
+        // SliverToBoxAdapter(
+        //   child: Center(
+        //     child: SizedBox(
+        //       key: _documentWrapperKey,
+        //       child: document,
+        //     ),
+        //   ),
+        // ),
+      ],
+    );
+
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const NeverScrollableScrollPhysics(),

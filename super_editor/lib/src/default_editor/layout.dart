@@ -342,18 +342,35 @@ class _DefaultDocumentLayoutState extends State<DefaultDocumentLayout> implement
   }
 
   bool _isOffsetInComponent(RenderBox componentBox, Offset documentOffset) {
-    final containerBox = context.findRenderObject() as RenderBox;
+    // todo: Get RenderObject
+    //final containerBox = context.findRenderObject() as RenderSliver;
+    //print("_isOffsetInComponent called");
+    //print(documentOffset);
+    // print(containerBox);
+
+    final containerBox = context.findRenderObject() as RenderSliverList;
     final contentOffset = componentBox.localToGlobal(Offset.zero, ancestor: containerBox);
     final contentRect = contentOffset & componentBox.size;
+    final res = contentRect.contains(documentOffset);
+    //if (res) print(">>>>>>>>>>>>>>>>>>" + documentOffset.toString());
+    return res;
+    // final containerBox = context.findRenderObject() as RenderBox;
+    // final contentOffset = componentBox.localToGlobal(Offset.zero, ancestor: containerBox);
+    // final contentRect = contentOffset & componentBox.size;
 
-    return contentRect.contains(documentOffset);
+    //return contentRect.contains(documentOffset);
   }
 
   Offset _componentOffset(RenderBox componentBox, Offset documentOffset) {
-    final containerBox = context.findRenderObject() as RenderBox;
+    // todo: Get RenderObject
+    //print("_componentOffset called");
+    // print(componentBox.parentData);
+    // return documentOffset;
+
+    final containerBox = context.findRenderObject() as RenderSliverList;
     final contentOffset = componentBox.localToGlobal(Offset.zero, ancestor: containerBox);
     final contentRect = contentOffset & componentBox.size;
-
+    //print(documentOffset - contentRect.topLeft);
     return documentOffset - contentRect.topLeft;
   }
 
@@ -374,28 +391,70 @@ class _DefaultDocumentLayoutState extends State<DefaultDocumentLayout> implement
 
   @override
   Offset getDocumentOffsetFromAncestorOffset(Offset ancestorOffset, RenderObject ancestor) {
+    // todo: Get RenderObject
+    //var renderObj = _sliverListKey.currentContext!.findRenderObject();
+    //print("getDocumentOffsetFromAncestorOffset called");
+    //print(context.findRenderObject().runtimeType);
+    return ancestorOffset;
+    // RenderSliverList
+    // RenderBox
+
+    return (context.findRenderObject() as RenderBox).globalToLocal(ancestorOffset, ancestor: ancestor);
+
+    //     .hitTest(result, mainAxisPosition: mainAxisPosition, crossAxisPosition: crossAxisPosition);
+
     return (context.findRenderObject() as RenderBox).globalToLocal(ancestorOffset, ancestor: ancestor);
   }
 
   @override
   Offset getAncestorOffsetFromDocumentOffset(Offset documentOffset, RenderObject ancestor) {
+    // todo: Get RenderObject
+    //print("getAncestorOffsetFromDocumentOffset called");
+    return documentOffset;
     return (context.findRenderObject() as RenderBox).localToGlobal(documentOffset, ancestor: ancestor);
   }
+
+  GlobalKey _sliverListKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final docComponents = _buildDocComponents();
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final docComponent in docComponents) ...[
-          docComponent,
-          SizedBox(height: widget.componentVerticalSpacing),
-        ],
-      ],
+    return SliverList(
+      key: _sliverListKey,
+      delegate: SliverChildBuilderDelegate(
+        (context, i) => Padding(
+          padding: EdgeInsets.only(top: 0, left: 0, right: 0, bottom: widget.componentVerticalSpacing),
+          child: docComponents[i],
+        ),
+        childCount: docComponents.length,
+      ),
     );
+    // return SliverToBoxAdapter(
+    //   child: Center(
+    //     child: SizedBox(
+    //         child: Column(
+    //       mainAxisSize: MainAxisSize.min,
+    //       crossAxisAlignment: CrossAxisAlignment.stretch,
+    //       children: [
+    //         for (final docComponent in docComponents) ...[
+    //           docComponent,
+    //           SizedBox(height: widget.componentVerticalSpacing),
+    //         ],
+    //       ],
+    //     )),
+    //   ),
+    // );
+    // return Column(
+    //   mainAxisSize: MainAxisSize.min,
+    //   crossAxisAlignment: CrossAxisAlignment.stretch,
+    //   children: [
+    //     for (final docComponent in docComponents) ...[
+    //       docComponent,
+    //       SizedBox(height: widget.componentVerticalSpacing),
+    //     ],
+    //   ],
+    // );
   }
 
   List<Widget> _buildDocComponents() {
